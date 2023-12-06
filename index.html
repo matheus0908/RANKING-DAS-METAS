@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Produção</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #1e2a38;
+      color: #ffffff;
+      text-align: center;
+      padding: 10px;
+    }
+
+    section {
+      margin: 20px;
+      padding: 20px;
+      background-color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 10px;
+      background-color: #1e2a38;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #dddddd;
+      text-align: left;
+      padding: 8px;
+    }
+
+    th {
+      background-color: #1e2a38;
+      color: #ffffff;
+    }
+
+    h2 {
+      color: #1e2a38;
+    }
+
+    canvas {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Registro de Produção</h1>
+  </header>
+
+  <section>
+    <h2>Registrar Produção Diária</h2>
+    <label for="name">Nome do Colaborador:</label>
+    <input type="text" id="name" required>
+
+    <label for="date">Data da Produção:</label>
+    <input type="date" id="date" required>
+
+    <label for="production">Número da Produção:</label>
+    <input type="number" id="production" required>
+
+    <button onclick="addProduction()">Registrar Produção</button>
+  </section>
+
+  <section>
+
+      <h2>Ranking de Produção</h2>
+     <button onclick="viewRanking()">Ver Ranking</button>
+    <button onclick="resetRanking()">Zerar Ranking</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Posição</th>
+          <th>Nome do Colaborador</th>
+          <th>Produção</th>
+        </tr>
+      </thead>
+      <tbody id="rankingBody"></tbody>
+    </table>
+  </section>
+
+  <canvas id="chart" width="400" height="200"></canvas>
+ 
+
+
+  <script>
+    // Função para adicionar produção
+    function addProduction() {
+      const name = document.getElementById('name').value;
+      const date = document.getElementById('date').value;
+      const production = parseInt(document.getElementById('production').value);
+
+      const productionData = JSON.parse(localStorage.getItem('productionData')) || [];
+
+      // Verificar se o colaborador já está no ranking
+      const existingEntry = productionData.find(entry => entry.name === name);
+
+      if (existingEntry) {
+        // Atualizar a meta diária se o colaborador já estiver no ranking
+        existingEntry.production += production;
+      } else {
+        // Adicionar novo registro com identificador único
+        const entry = { id: Date.now(), name, production, date };
+        productionData.push(entry);
+      }
+
+      localStorage.setItem('productionData', JSON.stringify(productionData));
+
+      updateRanking();
+      updateChart();
+    }
+
+
+
+    // Função para zerar o ranking
+    function resetRanking() {
+      localStorage.removeItem('productionData');
+      updateRanking();
+      updateChart();
+    }
+
+    // Função para atualizar o ranking na página
+    function updateRanking() {
+      const rankingBody = document.getElementById('rankingBody');
+      rankingBody.innerHTML = '';
+
+      const productionData = JSON.parse(localStorage.getItem('productionData')) || [];
+
+      // Ordenar produção em ordem decrescente
+      productionData.sort((a, b) => b.production - a.production);
+
+      productionData.forEach((entry, index) => {
+        const row = rankingBody.insertRow();
+        row.id = `row-${index + 1}`;
+        const positionCell = row.insertCell(0);
+        const nameCell = row.insertCell(1);
+        const productionCell = row.insertCell(2);
+
+        positionCell.textContent = index + 1;
+        nameCell.textContent = entry.name;
+        productionCell.textContent = entry.production;
+        row.onclick = () => showChart(entry.name, entry.production);
+      
+      });
+    }
+    function viewRanking() {
+      window.location.href = "ranking.html";
+    }
+
+    // Função para atualizar o gráfico na página
+    function updateChart() {
+      const productionData = JSON.parse(localStorage.getItem('productionData')) || [];
+      const labels = productionData.map(entry => entry.name);
+      const data = productionData.map(entry => entry.production);
+
+      const ctx = document.getElementById('chart').getContext('2d');
+      const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Produção',
+            data: data,
+            backgroundColor: '#1e2a38',
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+     function showChart(name, production) {
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [name],
+        datasets: [{
+          label: 'Produção',
+          data: [production],
+          backgroundColor: '#1e2a38',
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+    // Inicializar a página com o ranking e o gráfico
+    updateRanking();
+    updateChart();
+  </script>
+
+</body>
+</html>
